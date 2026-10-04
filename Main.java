@@ -1,47 +1,83 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
 import java.util.List;
-import java.util.Scanner;
 
 /**
- * Menu-driven console front-end for the Train Ticket Booking System.
+ * Swing GUI front-end for the Train Ticket Booking System.
  */
-public class Main {
+public class Main extends JFrame {
 
-    private static final Scanner scanner = new Scanner(System.in);
-    private static final ReservationSystem system = new ReservationSystem();
+    private final ReservationSystem system = new ReservationSystem();
+
+    // Trains tab
+    private final DefaultTableModel trainModel =
+            makeModel("No.", "Name", "From", "To", "Seats", "Waitlist");
+    private final JTable trainTable = new JTable(trainModel);
+    private final JTextField searchFrom = new JTextField(12);
+    private final JTextField searchTo = new JTextField(12);
+    private boolean searchActive = false;
+
+    // Book tab
+    private JComboBox<Train> bookTrainCombo;
+    private final JLabel bookInfo = new JLabel(" ");
+    private final JTextField nameField = new JTextField(20);
+    private final JSpinner ageSpinner = new JSpinner(new SpinnerNumberModel(25, 1, 119, 1));
+    private final JTextField contactField = new JTextField(20);
+
+    // Manage tab
+    private final JTextField ticketIdField = new JTextField(12);
+    private final JTextArea ticketDetails = monoArea(10, 60);
+
+    // Bookings tab
+    private final DefaultTableModel ticketModel =
+            makeModel("Ticket", "Train", "Passenger", "Seat", "Status");
+    private final JTable ticketTable = new JTable(ticketModel);
+
+    // Chart tab
+    private JComboBox<Train> chartTrainCombo;
+    private final JLabel chartInfo = new JLabel(" ");
+    private final DefaultTableModel chartModel =
+            makeModel("Ticket", "Passenger", "Seat", "Status");
+    private final JTable chartTable = new JTable(chartModel);
+
+    // Notification log
+    private final JTextArea notifyLog = new JTextArea(5, 60);
 
     public static void main(String[] args) {
-        seedTrains();
-        System.out.println("=========================================");
-        System.out.println("   TRAIN TICKET BOOKING SYSTEM");
-        System.out.println("=========================================");
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ignored) { }
+            new Main().setVisible(true);
+        });
+    }
 
-        boolean running = true;
-        while (running) {
-            printMenu();
-            int choice = readInt("Enter your choice: ");
-            System.out.println();
-            switch (choice) {
-                case 1 -> showAllTrains();
-                case 2 -> searchTrains();
-                case 3 -> bookTicket();
-                case 4 -> cancelTicket();
-                case 5 -> viewTicket();
-                case 6 -> showAllTickets();
-                case 7 -> showTrainChart();
-                case 0 -> {
-                    System.out.println("Thank you for using the booking system. Safe travels!");
-                    running = false;
-                }
-                default -> System.out.println("Invalid choice. Please pick a number from the menu.");
-            }
-            System.out.println();
-        }
-        scanner.close();
+    public Main() {
+        super("Train Ticket Booking System");
+        seedTrains();
+        Passenger.setNotificationHandler(msg -> notifyLog.append(msg + "\n"));
+
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(8, 8));
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Trains", buildTrainsTab(tabs));
+        tabs.addTab("Book Ticket", buildBookTab());
+        tabs.addTab("Manage Ticket", buildManageTab());
+        tabs.addTab("All Bookings", buildBookingsTab());
+        tabs.addTab("Reservation Chart", buildChartTab());
+        add(tabs, BorderLayout.CENTER);
+        add(buildNotifyPanel(), BorderLayout.SOUTH);
+
+        refreshAll();
+        setSize(860, 640);
+        setLocationRelativeTo(null);
     }
 
     // ------------------------------------------------------------ sample data
 
-    private static void seedTrains() {
+    private void seedTrains() {
         system.addTrain(new Train("12951", "Rajdhani Express", "Mumbai", "Delhi", 4));
         system.addTrain(new Train("12627", "Karnataka Express", "Bangalore", "Delhi", 3));
         system.addTrain(new Train("12841", "Coromandel Express", "Kolkata", "Chennai", 2));
@@ -49,178 +85,384 @@ public class Main {
         system.addTrain(new Train("16526", "Island Express", "Bangalore", "Kanyakumari", 3));
     }
 
-    // ----------------------------------------------------------------- menu
+    // ------------------------------------------------------------------ tabs
 
-    private static void printMenu() {
-        System.out.println("-----------------------------------------");
-        System.out.println(" 1. View all trains");
-        System.out.println(" 2. Search trains (source -> destination)");
-        System.out.println(" 3. Book a ticket");
-        System.out.println(" 4. Cancel a ticket");
-        System.out.println(" 5. View ticket / booking status");
-        System.out.println(" 6. View all bookings");
-        System.out.println(" 7. View reservation chart for a train");
-        System.out.println(" 0. Exit");
-        System.out.println("-----------------------------------------");
-    }
+    private JPanel buildTrainsTab(JTabbedPane tabs) {
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-    // ------------------------------------------------------------- features
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        top.add(new JLabel("From:"));
+        top.add(searchFrom);
+        top.add(new JLabel("To:"));
+        top.add(searchTo);
+        JButton searchBtn = new JButton("Search");
+        JButton showAllBtn = new JButton("Show All");
+        top.add(searchBtn);
+        top.add(showAllBtn);
+        panel.add(top, BorderLayout.NORTH);
 
-    private static void showAllTrains() {
-        System.out.println("AVAILABLE TRAINS");
-        printTrainTable(system.getAllTrains());
-    }
+        trainTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        trainTable.setRowHeight(24);
+        panel.add(new JScrollPane(trainTable), BorderLayout.CENTER);
 
-    private static void searchTrains() {
-        String source = readLine("Enter source station: ");
-        String destination = readLine("Enter destination station: ");
-        List<Train> results = system.searchTrains(source, destination);
-        System.out.println();
-        if (results.isEmpty()) {
-            System.out.println("No trains found from " + source + " to " + destination + ".");
-            return;
-        }
-        System.out.println("TRAINS FROM " + source.toUpperCase() + " TO " + destination.toUpperCase());
-        printTrainTable(results);
-    }
+        JButton bookSelected = new JButton("Book Selected Train");
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottom.add(bookSelected);
+        panel.add(bottom, BorderLayout.SOUTH);
 
-    private static void bookTicket() {
-        String trainNumber = readLine("Enter train number: ");
-        Train train = system.findTrain(trainNumber);
-        if (train == null) {
-            System.out.println("No train found with number " + trainNumber + ".");
-            return;
-        }
-        System.out.println("Selected: " + train);
-        System.out.println("Seats available: " + train.getAvailableSeats()
-                + " | Current waiting list: " + train.getWaitlistSize());
-
-        String name = readNonEmpty("Passenger name: ");
-        int age = readAge();
-        String contact = readNonEmpty("Contact number / e-mail: ");
-
-        Passenger passenger = new Passenger(name, age, contact);
-        Ticket ticket = system.bookTicket(train.getTrainNumber(), passenger);
-
-        System.out.println();
-        if (ticket.isConfirmed()) {
-            System.out.println(">>> BOOKING CONFIRMED <<<");
-        } else {
-            System.out.println(">>> TRAIN FULL - ADDED TO WAITING LIST <<<");
-        }
-        System.out.println(ticket.details());
-    }
-
-    private static void cancelTicket() {
-        String ticketId = readNonEmpty("Enter ticket ID to cancel: ");
-        try {
-            Ticket promoted = system.cancelTicket(ticketId);
-            System.out.println();
-            System.out.println("Ticket " + ticketId.trim().toUpperCase() + " cancelled successfully.");
-            if (promoted != null) {
-                System.out.println();
-                System.out.println(">>> WAITLIST PROMOTION <<<");
-                System.out.println(promoted.getPassenger().getName()
-                        + " has been moved from the waiting list to a confirmed seat.");
-                System.out.println(promoted.details());
+        searchBtn.addActionListener(e -> {
+            String from = searchFrom.getText().trim();
+            String to = searchTo.getText().trim();
+            if (from.isEmpty() || to.isEmpty()) {
+                warn("Please enter both source and destination stations.");
+                return;
             }
-        } catch (IllegalArgumentException e) {
-            System.out.println(e.getMessage());
-        }
+            searchActive = true;
+            refreshTrains();
+            if (trainModel.getRowCount() == 0) {
+                info("No trains found from " + from + " to " + to + ".");
+            }
+        });
+        showAllBtn.addActionListener(e -> {
+            searchActive = false;
+            searchFrom.setText("");
+            searchTo.setText("");
+            refreshTrains();
+        });
+        bookSelected.addActionListener(e -> {
+            int row = trainTable.getSelectedRow();
+            if (row < 0) {
+                warn("Select a train from the table first.");
+                return;
+            }
+            Train t = system.findTrain((String) trainModel.getValueAt(row, 0));
+            bookTrainCombo.setSelectedItem(t);
+            tabs.setSelectedIndex(1);
+            nameField.requestFocusInWindow();
+        });
+        return panel;
     }
 
-    private static void viewTicket() {
-        String ticketId = readNonEmpty("Enter ticket ID: ");
-        Ticket ticket = system.findTicket(ticketId);
-        System.out.println();
+    private JPanel buildBookTab() {
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBorder(BorderFactory.createTitledBorder("Passenger details"));
+
+        bookTrainCombo = newTrainCombo();
+        bookTrainCombo.addActionListener(e -> updateBookInfo());
+
+        addRow(form, 0, "Train:", bookTrainCombo);
+        addRow(form, 1, "Availability:", bookInfo);
+        addRow(form, 2, "Passenger name:", nameField);
+        addRow(form, 3, "Age:", ageSpinner);
+        addRow(form, 4, "Contact (phone / e-mail):", contactField);
+
+        JButton bookBtn = new JButton("Book Ticket");
+        JButton clearBtn = new JButton("Clear");
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttons.add(clearBtn);
+        buttons.add(bookBtn);
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.gridx = 0; gc.gridy = 5; gc.gridwidth = 2;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.insets = new Insets(10, 6, 6, 6);
+        form.add(buttons, gc);
+
+        bookBtn.addActionListener(e -> doBook());
+        clearBtn.addActionListener(e -> {
+            nameField.setText("");
+            contactField.setText("");
+            ageSpinner.setValue(25);
+        });
+
+        outer.add(form, BorderLayout.NORTH);
+        return outer;
+    }
+
+    private JPanel buildManageTab() {
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        top.add(new JLabel("Ticket ID:"));
+        top.add(ticketIdField);
+        JButton viewBtn = new JButton("View Status");
+        JButton cancelBtn = new JButton("Cancel Ticket");
+        top.add(viewBtn);
+        top.add(cancelBtn);
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(new JScrollPane(ticketDetails), BorderLayout.CENTER);
+
+        viewBtn.addActionListener(e -> doView());
+        ticketIdField.addActionListener(e -> doView());
+        cancelBtn.addActionListener(e -> doCancel(ticketIdField.getText().trim()));
+        return panel;
+    }
+
+    private JPanel buildBookingsTab() {
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        ticketTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        ticketTable.setRowHeight(24);
+        panel.add(new JScrollPane(ticketTable), BorderLayout.CENTER);
+
+        JButton cancelSel = new JButton("Cancel Selected Ticket");
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottom.add(cancelSel);
+        panel.add(bottom, BorderLayout.SOUTH);
+
+        cancelSel.addActionListener(e -> {
+            int row = ticketTable.getSelectedRow();
+            if (row < 0) {
+                warn("Select a booking from the table first.");
+                return;
+            }
+            doCancel((String) ticketModel.getValueAt(row, 0));
+        });
+        return panel;
+    }
+
+    private JPanel buildChartTab() {
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        chartTrainCombo = newTrainCombo();
+        chartTrainCombo.addActionListener(e -> refreshChart());
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        top.add(new JLabel("Train:"));
+        top.add(chartTrainCombo);
+        top.add(chartInfo);
+        panel.add(top, BorderLayout.NORTH);
+
+        chartTable.setRowHeight(24);
+        panel.add(new JScrollPane(chartTable), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildNotifyPanel() {
+        notifyLog.setEditable(false);
+        notifyLog.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        JButton clear = new JButton("Clear");
+        clear.addActionListener(e -> notifyLog.setText(""));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.add(new JLabel(" Notifications (simulated SMS / e-mail)"), BorderLayout.WEST);
+        header.add(clear, BorderLayout.EAST);
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(0, 8, 8, 8));
+        panel.add(header, BorderLayout.NORTH);
+        panel.add(new JScrollPane(notifyLog), BorderLayout.CENTER);
+        return panel;
+    }
+
+    // --------------------------------------------------------------- actions
+
+    private void doBook() {
+        Train train = (Train) bookTrainCombo.getSelectedItem();
+        String name = nameField.getText().trim();
+        String contact = contactField.getText().trim();
+        int age = (Integer) ageSpinner.getValue();
+
+        if (train == null) {
+            warn("Please select a train.");
+            return;
+        }
+        if (name.isEmpty() || contact.isEmpty()) {
+            warn("Passenger name and contact cannot be blank.");
+            return;
+        }
+
+        Ticket ticket = system.bookTicket(train.getTrainNumber(), new Passenger(name, age, contact));
         if (ticket == null) {
-            System.out.println("No ticket found with ID " + ticketId + ".");
+            warn("Train not found.");
             return;
         }
-        System.out.println(ticket.details());
+        refreshAll();
+
+        String heading = ticket.isConfirmed()
+                ? ">>> BOOKING CONFIRMED <<<"
+                : ">>> TRAIN FULL - ADDED TO WAITING LIST <<<";
+        showText(heading, ticket.details(),
+                ticket.isConfirmed() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+
+        ticketIdField.setText(ticket.getTicketId());
+        nameField.setText("");
+        contactField.setText("");
     }
 
-    private static void showAllTickets() {
-        List<Ticket> all = system.getAllTickets();
-        if (all.isEmpty()) {
-            System.out.println("No bookings have been made yet.");
+    private void doView() {
+        String id = ticketIdField.getText().trim();
+        if (id.isEmpty()) {
+            warn("Enter a ticket ID.");
             return;
         }
-        System.out.println("ALL BOOKINGS");
-        System.out.printf("%-9s %-7s %-18s %-10s %s%n",
-                "TICKET", "TRAIN", "PASSENGER", "SEAT", "STATUS");
-        for (Ticket ticket : all) {
-            System.out.println(ticket.summary());
+        Ticket t = system.findTicket(id);
+        ticketDetails.setText(t == null ? "No ticket found with ID " + id + "." : t.details());
+        ticketDetails.setCaretPosition(0);
+    }
+
+    private void doCancel(String id) {
+        if (id.isEmpty()) {
+            warn("Enter a ticket ID to cancel.");
+            return;
+        }
+        if (system.findTicket(id) == null) {
+            warn("No ticket found with ID " + id + ".");
+            return;
+        }
+        int ok = JOptionPane.showConfirmDialog(this,
+                "Cancel ticket " + id.toUpperCase() + "?", "Confirm cancellation",
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (ok != JOptionPane.YES_OPTION) {
+            return;
+        }
+        try {
+            Ticket promoted = system.cancelTicket(id);
+            refreshAll();
+            ticketIdField.setText(id.toUpperCase());
+            doView();
+            StringBuilder msg = new StringBuilder("Ticket " + id.toUpperCase() + " cancelled successfully.");
+            if (promoted != null) {
+                msg.append("\n\n>>> WAITLIST PROMOTION <<<\n")
+                   .append(promoted.getPassenger().getName())
+                   .append(" has been moved from the waiting list to a confirmed seat.\n\n")
+                   .append(promoted.details());
+                showText("Ticket cancelled", msg.toString(), JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                info(msg.toString());
+            }
+        } catch (IllegalArgumentException ex) {
+            warn(ex.getMessage());
         }
     }
 
-    private static void showTrainChart() {
-        String trainNumber = readLine("Enter train number: ");
-        Train train = system.findTrain(trainNumber);
+    // --------------------------------------------------------------- refresh
+
+    private void refreshAll() {
+        refreshTrains();
+        updateBookInfo();
+        refreshTickets();
+        refreshChart();
+    }
+
+    private void refreshTrains() {
+        trainModel.setRowCount(0);
+        List<Train> trains = searchActive
+                ? system.searchTrains(searchFrom.getText(), searchTo.getText())
+                : system.getAllTrains();
+        for (Train t : trains) {
+            trainModel.addRow(new Object[]{
+                    t.getTrainNumber(), t.getTrainName(), t.getSource(), t.getDestination(),
+                    t.getAvailableSeats() + "/" + t.getTotalSeats(), t.getWaitlistSize()});
+        }
+    }
+
+    private void updateBookInfo() {
+        Train t = (Train) bookTrainCombo.getSelectedItem();
+        if (t == null) {
+            bookInfo.setText(" ");
+            return;
+        }
+        bookInfo.setText("Seats available: " + t.getAvailableSeats() + "/" + t.getTotalSeats()
+                + "  |  Waiting list: " + t.getWaitlistSize());
+    }
+
+    private void refreshTickets() {
+        ticketModel.setRowCount(0);
+        for (Ticket t : system.getAllTickets()) {
+            ticketModel.addRow(new Object[]{
+                    t.getTicketId(), t.getTrain().getTrainNumber(), t.getPassenger().getName(),
+                    seatText(t), statusText(t)});
+        }
+    }
+
+    private void refreshChart() {
+        chartModel.setRowCount(0);
+        Train train = (Train) chartTrainCombo.getSelectedItem();
         if (train == null) {
-            System.out.println("No train found with number " + trainNumber + ".");
             return;
         }
-        List<Ticket> ticketsForTrain = system.getTicketsForTrain(train.getTrainNumber());
-        System.out.println();
-        System.out.println("RESERVATION CHART - " + train);
-        System.out.println("Seats available: " + train.getAvailableSeats() + "/"
-                + train.getTotalSeats() + " | Waiting list: " + train.getWaitlistSize());
-        System.out.println("-----------------------------------------------------------");
-        if (ticketsForTrain.isEmpty()) {
-            System.out.println("No bookings on this train yet.");
-            return;
-        }
-        for (Ticket ticket : ticketsForTrain) {
-            if (!ticket.isCancelled()) {
-                System.out.println(ticket.summary());
+        chartInfo.setText("   Seats available: " + train.getAvailableSeats() + "/"
+                + train.getTotalSeats() + "  |  Waiting list: " + train.getWaitlistSize());
+        for (Ticket t : system.getTicketsForTrain(train.getTrainNumber())) {
+            if (!t.isCancelled()) {
+                chartModel.addRow(new Object[]{
+                        t.getTicketId(), t.getPassenger().getName(), seatText(t), statusText(t)});
             }
         }
     }
 
-    private static void printTrainTable(List<Train> trains) {
-        System.out.printf("%-7s %-20s %-12s    %-12s %-13s %s%n",
-                "NO.", "NAME", "FROM", "TO", "SEATS", "WAITLIST");
-        for (Train train : trains) {
-            System.out.println(train.summary());
-        }
+    // --------------------------------------------------------------- helpers
+
+    private static String seatText(Ticket t) {
+        return t.getSeatNumber() > 0 ? String.valueOf(t.getSeatNumber()) : "-";
     }
 
-    // ---------------------------------------------------------- input helpers
-
-    private static String readLine(String prompt) {
-        System.out.print(prompt);
-        return scanner.nextLine().trim();
-    }
-
-    private static String readNonEmpty(String prompt) {
-        while (true) {
-            String value = readLine(prompt);
-            if (!value.isEmpty()) {
-                return value;
-            }
-            System.out.println("This field cannot be blank. Please try again.");
-        }
-    }
-
-    private static int readInt(String prompt) {
-        while (true) {
-            String value = readLine(prompt);
-            try {
-                return Integer.parseInt(value);
-            } catch (NumberFormatException e) {
-                System.out.println("Please enter a valid number.");
+    private static String statusText(Ticket t) {
+        if (t.isWaitlisted()) {
+            int pos = t.getTrain().waitlistPositionOf(t);
+            if (pos > 0) {
+                return "WAITLISTED (WL #" + pos + ")";
             }
         }
+        return t.getStatus().toString();
     }
 
-    private static int readAge() {
-        while (true) {
-            int age = readInt("Passenger age: ");
-            if (age > 0 && age < 120) {
-                return age;
-            }
-            System.out.println("Please enter an age between 1 and 119.");
+    private JComboBox<Train> newTrainCombo() {
+        JComboBox<Train> combo = new JComboBox<>();
+        for (Train t : system.getAllTrains()) {
+            combo.addItem(t);
         }
+        return combo;
+    }
+
+    private static DefaultTableModel makeModel(String... columns) {
+        return new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+    }
+
+    private static JTextArea monoArea(int rows, int cols) {
+        JTextArea area = new JTextArea(rows, cols);
+        area.setEditable(false);
+        area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
+        return area;
+    }
+
+    private static void addRow(JPanel form, int row, String label, JComponent field) {
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.gridy = row;
+        gc.insets = new Insets(6, 6, 6, 6);
+        gc.anchor = GridBagConstraints.WEST;
+
+        gc.gridx = 0;
+        form.add(new JLabel(label), gc);
+
+        gc.gridx = 1;
+        gc.weightx = 1;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        form.add(field, gc);
+    }
+
+    private void showText(String title, String text, int messageType) {
+        JTextArea area = monoArea(14, 58);
+        area.setText(text);
+        JOptionPane.showMessageDialog(this, new JScrollPane(area), title, messageType);
+    }
+
+    private void info(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Information", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void warn(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Notice", JOptionPane.WARNING_MESSAGE);
     }
 }

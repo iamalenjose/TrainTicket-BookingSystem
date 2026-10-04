@@ -1,8 +1,13 @@
+import java.util.function.Consumer;
+
 /**
  * Represents a passenger travelling on a train.
  */
 public class Passenger {
     private static int counter = 1000;
+
+    /** Where notifications are delivered (the GUI sets this; falls back to console). */
+    private static Consumer<String> notificationHandler = null;
 
     private final String passengerId;
     private final String name;
@@ -16,6 +21,10 @@ public class Passenger {
         this.contact = contact;
     }
 
+    public static void setNotificationHandler(Consumer<String> handler) {
+        notificationHandler = handler;
+    }
+
     public String getPassengerId() { return passengerId; }
     public String getName()        { return name; }
     public int getAge()            { return age; }
@@ -23,7 +32,12 @@ public class Passenger {
 
     /** Simulated notification (SMS / e-mail) sent to the passenger. */
     public void notifyPassenger(String message) {
-        System.out.println("  [NOTIFY -> " + name + " (" + contact + ")]: " + message);
+        String line = "[NOTIFY -> " + name + " (" + contact + ")]: " + message;
+        if (notificationHandler != null) {
+            notificationHandler.accept(line);
+        } else {
+            System.out.println("  " + line);
+        }
     }
 
     @Override
