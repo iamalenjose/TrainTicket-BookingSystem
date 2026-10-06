@@ -1,6 +1,6 @@
-/** Real-time status of a ticket. */
+/* Real-time status of a ticket */
 public enum BookingStatus {
-    CONFIRMED,
-    WAITLISTED,
-    CANCELLED
+CONFIRMED,
+WAITLISTED,
+CANCELLED
 }
