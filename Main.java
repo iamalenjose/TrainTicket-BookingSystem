@@ -2,7 +2,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
-//Swing GUI frontend
+
 public class Main extends JFrame {
 private final ReservationSystem system = new ReservationSystem();
 
