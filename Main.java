@@ -2,32 +2,28 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
-
-/**
- * Swing GUI front-end for the Train Ticket Booking System.
- */
+//Swing GUI frontend
 public class Main extends JFrame {
+private final ReservationSystem system = new ReservationSystem();
 
-    private final ReservationSystem system = new ReservationSystem();
+// Traijn tab
+private final DefaultTableModel trainModel =
+makeModel("No.", "Name", "From", "To", "Seats", "Waitlist");
+private final JTable trainTable = new JTable(trainModel);
+private final JTextField searchFrom = new JTextField(12);
+private final JTextField searchTo = new JTextField(12);
+private boolean searchActive = false;
 
-    // Trains tab
-    private final DefaultTableModel trainModel =
-            makeModel("No.", "Name", "From", "To", "Seats", "Waitlist");
-    private final JTable trainTable = new JTable(trainModel);
-    private final JTextField searchFrom = new JTextField(12);
-    private final JTextField searchTo = new JTextField(12);
-    private boolean searchActive = false;
+// Book tab
+private JComboBox<Train> bookTrainCombo;
+private final JLabel bookInfo = new JLabel(" ");
+private final JTextField nameField = new JTextField(20);
+private final JSpinner ageSpinner = new JSpinner(new SpinnerNumberModel(25, 1, 119, 1));
+private final JTextField contactField = new JTextField(20);
 
-    // Book tab
-    private JComboBox<Train> bookTrainCombo;
-    private final JLabel bookInfo = new JLabel(" ");
-    private final JTextField nameField = new JTextField(20);
-    private final JSpinner ageSpinner = new JSpinner(new SpinnerNumberModel(25, 1, 119, 1));
-    private final JTextField contactField = new JTextField(20);
-
-    // Manage tab
-    private final JTextField ticketIdField = new JTextField(12);
-    private final JTextArea ticketDetails = monoArea(10, 60);
+// Manage tab
+private final JTextField ticketIdField = new JTextField(12);
+private final JTextArea ticketDetails = monoArea(10, 60);
 
     // Bookings tab
     private final DefaultTableModel ticketModel =
