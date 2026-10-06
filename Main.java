@@ -25,63 +25,58 @@ private final JTextField contactField = new JTextField(20);
 private final JTextField ticketIdField = new JTextField(12);
 private final JTextArea ticketDetails = monoArea(10, 60);
 
-    // Bookings tab
-    private final DefaultTableModel ticketModel =
-            makeModel("Ticket", "Train", "Passenger", "Seat", "Status");
-    private final JTable ticketTable = new JTable(ticketModel);
+// Bookings tab
+private final DefaultTableModel ticketModel =
+makeModel("Ticket", "Train", "Passenger", "Seat", "Status");
+private final JTable ticketTable = new JTable(ticketModel);
 
-    // Chart tab
-    private JComboBox<Train> chartTrainCombo;
-    private final JLabel chartInfo = new JLabel(" ");
-    private final DefaultTableModel chartModel =
-            makeModel("Ticket", "Passenger", "Seat", "Status");
-    private final JTable chartTable = new JTable(chartModel);
+// Chart tab
+private JComboBox<Train> chartTrainCombo;
+private final JLabel chartInfo = new JLabel(" ");
+private final DefaultTableModel chartModel =
+makeModel("Ticket", "Passenger", "Seat", "Status");
+private final JTable chartTable = new JTable(chartModel);
 
-    // Notification log
-    private final JTextArea notifyLog = new JTextArea(5, 60);
+// Notification log
+private final JTextArea notifyLog = new JTextArea(5, 60);
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception ignored) { }
-            new Main().setVisible(true);
-        });
+public static void main(String[] args) {
+SwingUtilities.invokeLater(() -> {
+try {
+UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+} catch (Exception ignored) { }
+new Main().setVisible(true);
+});
+}
+public Main() {
+super("Train Ticket Booking System");
+seedTrains();
+Passenger.setNotificationHandler(msg -> notifyLog.append(msg + "\n"));
+setDefaultCloseOperation(EXIT_ON_CLOSE);
+setLayout(new BorderLayout(8, 8));
+JTabbedPane tabs = new JTabbedPane();
+tabs.addTab("Trains", buildTrainsTab(tabs));
+tabs.addTab("Book Ticket", buildBookTab());
+tabs.addTab("Manage Ticket", buildManageTab());
+tabs.addTab("All Bookings", buildBookingsTab());
+tabs.addTab("Reservation Chart", buildChartTab());
+add(tabs, BorderLayout.CENTER);
+add(buildNotifyPanel(), BorderLayout.SOUTH);
+
+refreshAll();
+setSize(860, 640);
+setLocationRelativeTo(null);
     }
+//sample trains
+private void seedTrains() {
+system.addTrain(new Train("12951", "Rajdhani Express", "Mumbai", "Delhi", 4));
+system.addTrain(new Train("12627", "Karnataka Express", "Bangalore", "Delhi", 3));
+system.addTrain(new Train("12841", "Coromandel Express", "Kolkata", "Chennai", 2));
+system.addTrain(new Train("12009", "Shatabdi Express", "Mumbai", "Delhi", 2));
+system.addTrain(new Train("16526", "Island Express", "Bangalore", "Kanyakumari", 3));
+}
 
-    public Main() {
-        super("Train Ticket Booking System");
-        seedTrains();
-        Passenger.setNotificationHandler(msg -> notifyLog.append(msg + "\n"));
-
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(8, 8));
-
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Trains", buildTrainsTab(tabs));
-        tabs.addTab("Book Ticket", buildBookTab());
-        tabs.addTab("Manage Ticket", buildManageTab());
-        tabs.addTab("All Bookings", buildBookingsTab());
-        tabs.addTab("Reservation Chart", buildChartTab());
-        add(tabs, BorderLayout.CENTER);
-        add(buildNotifyPanel(), BorderLayout.SOUTH);
-
-        refreshAll();
-        setSize(860, 640);
-        setLocationRelativeTo(null);
-    }
-
-    // ------------------------------------------------------------ sample data
-
-    private void seedTrains() {
-        system.addTrain(new Train("12951", "Rajdhani Express", "Mumbai", "Delhi", 4));
-        system.addTrain(new Train("12627", "Karnataka Express", "Bangalore", "Delhi", 3));
-        system.addTrain(new Train("12841", "Coromandel Express", "Kolkata", "Chennai", 2));
-        system.addTrain(new Train("12009", "Shatabdi Express", "Mumbai", "Delhi", 2));
-        system.addTrain(new Train("16526", "Island Express", "Bangalore", "Kanyakumari", 3));
-    }
-
-    // ------------------------------------------------------------------ tabs
+//tabs
 
     private JPanel buildTrainsTab(JTabbedPane tabs) {
         JPanel panel = new JPanel(new BorderLayout(6, 6));
