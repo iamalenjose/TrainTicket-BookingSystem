@@ -66,7 +66,8 @@ add(buildNotifyPanel(), BorderLayout.SOUTH);
 refreshAll();
 setSize(860, 640);
 setLocationRelativeTo(null);
-    }
+
+}
 //sample trains
 private void seedTrains() {
 system.addTrain(new Train("12951", "Rajdhani Express", "Mumbai", "Delhi", 4));
@@ -78,20 +79,20 @@ system.addTrain(new Train("16526", "Island Express", "Bangalore", "Kanyakumari",
 
 //tabs
 
-    private JPanel buildTrainsTab(JTabbedPane tabs) {
-        JPanel panel = new JPanel(new BorderLayout(6, 6));
-        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+private JPanel buildTrainsTab(JTabbedPane tabs) {
+JPanel panel = new JPanel(new BorderLayout(6, 6));
+panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        top.add(new JLabel("From:"));
-        top.add(searchFrom);
-        top.add(new JLabel("To:"));
-        top.add(searchTo);
-        JButton searchBtn = new JButton("Search");
-        JButton showAllBtn = new JButton("Show All");
-        top.add(searchBtn);
-        top.add(showAllBtn);
-        panel.add(top, BorderLayout.NORTH);
+JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+top.add(new JLabel("From:"));
+top.add(searchFrom);
+top.add(new JLabel("To:"));
+top.add(searchTo);
+JButton searchBtn = new JButton("Search");
+JButton showAllBtn = new JButton("Show All");
+top.add(searchBtn);
+top.add(showAllBtn);
+panel.add(top, BorderLayout.NORTH);
 
         trainTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         trainTable.setRowHeight(24);
